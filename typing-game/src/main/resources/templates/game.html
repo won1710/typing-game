@@ -300,7 +300,7 @@
 
     // ── WebSocket 연결 ──────────────────────────────────
     function connect() {
-        const sock = new SockJS('/typing-game/ws');
+        const sock = new SockJS('/ws');
         stomp = Stomp.over(sock);
         stomp.debug = null;
         stomp.connect({}, function () {

@@ -1,0 +1,244 @@
+@font-face {
+    font-family: 'DunggeunmoFixedsys';
+    src: url('../fonts/DungGeunMo.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    --bg:        #0000AA;
+    --surface:   #000088;
+    --border:    #5555FF;
+    --text:      #FFFFFF;
+    --accent:    #FFFF55;
+    --dim:       #AAAAAA;
+    --glow:      rgba(255, 255, 85, 0.15);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'DunggeunmoFixedsys', monospace;
+    background-color: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+}
+
+.container {
+    width: 100%;
+    max-width: 720px;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    padding: 48px;
+    box-shadow: 0 0 32px var(--glow), inset 0 0 60px rgba(0,0,0,0.4);
+}
+
+/* 상단 타이틀 바 */
+.title-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.title-bar h1 {
+    font-size: 1.8rem;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+}
+
+.title-bar::before {
+    content: '▶';
+    color: var(--accent);
+    font-size: 1rem;
+    animation: blink 1.2s step-end infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+h2 {
+    font-size: 1.1rem;
+    color: var(--accent);
+    margin: 28px 0 12px;
+    letter-spacing: 0.05em;
+}
+
+/* 라벨 */
+label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--dim);
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+}
+
+/* 입력 필드 */
+input[type="text"] {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-family: 'DunggeunmoFixedsys', monospace;
+    font-size: 1rem;
+    outline: none;
+    margin-bottom: 20px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 8px var(--glow);
+}
+
+/* 텍스트에어리어 */
+textarea {
+    width: 100%;
+    height: 130px;
+    padding: 14px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-family: 'DunggeunmoFixedsys', monospace;
+    font-size: 1rem;
+    resize: none;
+    outline: none;
+    margin-bottom: 20px;
+    line-height: 1.7;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 8px var(--glow);
+}
+
+/* 버튼 */
+button {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'DunggeunmoFixedsys', monospace;
+    font-size: 1rem;
+    padding: 11px 32px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    transition: background 0.15s, color 0.15s;
+}
+
+button:hover {
+    background: var(--accent);
+    color: var(--bg);
+}
+
+/* 정보 텍스트 */
+.info {
+    color: var(--text);
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.info strong {
+    color: var(--accent);
+}
+
+/* 목표 문장 블록 */
+.target-text {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    margin: 16px 0 20px;
+    color: var(--accent);
+    font-size: 1.05rem;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+/* 결과 테이블 */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 0.93rem;
+}
+
+thead tr {
+    background: var(--border);
+}
+
+th {
+    padding: 10px 14px;
+    text-align: left;
+    color: var(--accent);
+    border: 1px solid var(--border);
+    letter-spacing: 0.04em;
+}
+
+td {
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+tr.my-row td {
+    color: var(--accent);
+    background: var(--glow);
+}
+
+tr:not(thead tr):hover td {
+    background: rgba(255, 255, 85, 0.06);
+}
+
+/* 링크 */
+a.back-link {
+    display: inline-block;
+    margin-top: 28px;
+    padding: 10px 24px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    text-decoration: none;
+    font-family: 'DunggeunmoFixedsys', monospace;
+    letter-spacing: 0.06em;
+    transition: background 0.15s, color 0.15s;
+}
+
+a.back-link:hover {
+    background: var(--accent);
+    color: var(--bg);
+}
+
+/* 순위 메시지 */
+.msg-rank { color: #FFD700; }
+
+/* 스캔라인 효과 (선택) */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+}

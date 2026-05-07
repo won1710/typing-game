@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>앱 포털</title>
+    <style>
+        body {font-family: Arial, sans-serif; margin: 40px;}
+        .app-card {border: 1px solid #ddd; padding: 16px; margin-bottom: 12px; border-radius: 8px;}
+        .app-card a {text-decoration: none; color: #0078d4;}
+    </style>
+</head>
+<body>
+<h1>서비스 가능한 애플리케이션</h1>
+<div th:each="app : ${applications}" class="app-card">
+    <h2 th:text="${app.name}"></h2>
+    <p th:text="${app.description}"></p>
+    <a th:href="${app.url}">바로 이동</a>
+</div>
+</body>
+</html>

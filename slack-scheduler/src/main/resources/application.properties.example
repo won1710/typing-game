@@ -1,0 +1,8 @@
+spring.application.name=slack-scheduler
+server.servlet.context-path=/slack-scheduler
+
+# Slack Bot Token - https://api.slack.com/apps 에서 발급
+slack.bot-token=xoxb-YOUR-BOT-TOKEN-HERE
+
+# 메시지를 보낼 Slack 채널
+slack.channel=#general

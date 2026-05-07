@@ -1,0 +1,26 @@
+# 빌드 결과물
+target/
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+
+# 민감 정보 (절대 업로드 금지)
+application-*.properties
+application-*.yml
+
+# 로그
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 압축 파일
+*.zip

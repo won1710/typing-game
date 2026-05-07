@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Typing Game - BBS</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <style>
+        body {
+            display: block;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .bbs-wrap {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* ── 상단 상태바 (흰 배경 / 파란 글씨 - 클래식 BBS 반전) ── */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 14px;
+            background: #FFFFFF;
+            color: #0000AA;
+            font-size: 0.88rem;
+            letter-spacing: 0.06em;
+            flex-shrink: 0;
+            user-select: none;
+            border-bottom: 2px solid var(--accent);
+        }
+
+        #timer-display {
+            font-weight: bold;
+            min-width: 2ch;
+            text-align: right;
+        }
+
+        #timer-display.warning { animation: flicker 0.5s step-end infinite; }
+        @keyframes flicker { 50% { opacity: 0.2; } }
+
+        /* ── 채팅 영역 ── */
+        .chat-window {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .chat-window::-webkit-scrollbar { width: 5px; }
+        .chat-window::-webkit-scrollbar-track { background: #000088; }
+        .chat-window::-webkit-scrollbar-thumb { background: #5555FF; }
+
+        .msg {
+            display: flex;
+            gap: 8px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .msg .ts {
+            color: var(--dim);
+            font-size: 0.78rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .msg .tag {
+            flex-shrink: 0;
+            width: 54px;
+            font-size: 0.78rem;
+            text-align: center;
+        }
+
+        .msg .body { flex: 1; word-break: break-all; }
+
+        /* 타입별 색상 */
+        .msg.system .tag  { color: var(--dim); }
+        .msg.system .body { color: var(--text); }
+
+        .msg.game .tag  { color: var(--accent); }
+        .msg.game .body { color: var(--accent); }
+
+        .msg.sentence .tag  { color: var(--accent); }
+        .msg.sentence .body {
+            color: var(--accent);
+            font-size: 1.05rem;
+            border-left: 2px solid var(--accent);
+            padding-left: 8px;
+        }
+
+        .msg.timer .tag  { color: #88CCFF; }
+        .msg.timer .body { color: #88CCFF; }
+
+        .msg.warn .tag  { color: #FF8844; }
+        .msg.warn .body { color: #FF8844; }
+
+        .msg.rank .tag  { color: #FFD700; }
+        .msg.rank .body { color: #FFD700; }
+
+        .msg.mine .tag  { color: #88FF88; }
+        .msg.mine .body { color: #88FF88; font-style: italic; }
+
+        .chat-divider {
+            border: none;
+            border-top: 1px dashed #3333CC;
+            margin: 3px 0;
+        }
+
+        /* ── 입력 영역 ── */
+        .input-area {
+            flex-shrink: 0;
+            border-top: 2px solid var(--accent);
+            padding: 8px 14px;
+            background: #000088;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .prompt-label {
+            color: var(--accent);
+            white-space: nowrap;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .input-row input[type="text"] {
+            flex: 1;
+            margin-bottom: 0;
+            padding: 7px 11px;
+            background: #000066;
+            border-color: #5555FF;
+            color: #FFFFFF;
+        }
+
+        .input-row input[type="text"]:focus {
+            border-color: var(--accent);
+        }
+
+        .input-row button {
+            padding: 7px 18px;
+            white-space: nowrap;
+        }
+
+        .input-row button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+<input type="hidden" id="me" th:value="${nickname}" />
+
+<div class="bbs-wrap">
+
+    <!-- 상태바 -->
+    <div class="status-bar">
+        <span>◈ TYPING GAME BBS v1.0</span>
+        <span id="user-count">접속자: ─명</span>
+        <span>TIMER&nbsp;<span id="timer-display">──</span>초</span>
+    </div>
+
+    <!-- 채팅 창 -->
+    <div class="chat-window" id="chat-window"></div>
+
+    <!-- 입력창 -->
+    <div class="input-area">
+        <div class="input-row">
+            <span class="prompt-label">INPUT ▷</span>
+            <input type="text" id="typing-input" autocomplete="off"
+                   placeholder="라운드 시작을 기다리세요..." disabled />
+            <button type="button" id="submit-btn" disabled>[ 제출 ]</button>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/webjars/sockjs-client/sockjs.min.js}"></script>
+<script th:src="@{/webjars/stomp-websocket/stomp.min.js}"></script>
+<script>
+    const me = document.getElementById('me').value;
+    const GAME_SEC = 20;
+
+    let stomp       = null;
+    let hasSubmitted = false;
+    let displayTimer = null;
+    let displayLeft  = 0;
+
+    // ── 유틸 ────────────────────────────────────────────
+    function ts() { return new Date().toTimeString().slice(0, 8); }
+
+    function esc(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function post(type, tag, body) {
+        const win = document.getElementById('chat-window');
+        const d = document.createElement('div');
+        d.className = 'msg ' + type;
+        d.innerHTML =
+            '<span class="ts">[' + ts() + ']</span>' +
+            '<span class="tag">[' + tag + ']</span>' +
+            '<span class="body">' + esc(body) + '</span>';
+        win.appendChild(d);
+        win.scrollTop = win.scrollHeight;
+    }
+
+    function divider() {
+        const win = document.getElementById('chat-window');
+        const hr = document.createElement('hr');
+        hr.className = 'chat-divider';
+        win.appendChild(hr);
+        win.scrollTop = win.scrollHeight;
+    }
+
+    function setUserCount(n) {
+        if (n > 0)
+            document.getElementById('user-count').textContent = '접속자: ' + n + '명';
+    }
+
+    // ── 표시 타이머 (상태바용 카운트다운) ────────────────
+    function startDisplayTimer(initialSec) {
+        if (displayTimer) clearInterval(displayTimer);
+        displayLeft = initialSec;
+        const el = document.getElementById('timer-display');
+        el.textContent = displayLeft;
+        el.classList.remove('warning');
+
+        displayTimer = setInterval(function () {
+            displayLeft--;
+            el.textContent = Math.max(displayLeft, 0);
+            if (displayLeft <= 10) el.classList.add('warning');
+            if (displayLeft <= 0) {
+                clearInterval(displayTimer);
+                el.textContent = '──';
+                el.classList.remove('warning');
+            }
+        }, 1000);
+    }
+
+    // ── 라운드 리셋 ─────────────────────────────────────
+    function resetRound(initialSec) {
+        hasSubmitted = false;
+        const inp = document.getElementById('typing-input');
+        inp.value = '';
+        inp.disabled = false;
+        inp.placeholder = '여기에 입력하세요...';
+        document.getElementById('submit-btn').disabled = false;
+        startDisplayTimer(initialSec || GAME_SEC);
+        inp.focus();
+    }
+
+    function lockInput() {
+        document.getElementById('typing-input').disabled = true;
+        document.getElementById('submit-btn').disabled = true;
+    }
+
+    // ── 서버 메시지 처리 ────────────────────────────────
+    function onMessage(raw) {
+        const m = JSON.parse(raw.body);
+        setUserCount(m.userCount);
+
+        switch (m.type) {
+            case 'SYSTEM':
+                post('system', '딜러', m.text);
+                break;
+
+            case 'GAME':
+                divider();
+                post('game', '딜러', '▶ 다음 문장을 입력하세요:');
+                post('sentence', '      ', m.text);
+                divider();
+                resetRound(m.secondsLeft > 0 ? m.secondsLeft : GAME_SEC);
+                break;
+
+            case 'TIMER':
+                post('timer', '딜러', '⏱ ' + m.text);
+                break;
+
+            case 'WARN':
+                post('warn', '딜러', '⚠ ' + m.text);
+                break;
+
+            case 'RANK':
+                post('rank', '딜러', m.text);
+                break;
+        }
+    }
+
+    // ── WebSocket 연결 ──────────────────────────────────
+    function connect() {
+        const sock = new SockJS('/typing-game/ws');
+        stomp = Stomp.over(sock);
+        stomp.debug = null;
+        stomp.connect({}, function () {
+            stomp.subscribe('/topic/chat', onMessage);
+            stomp.send('/app/join', {}, JSON.stringify({ nickname: me }));
+        });
+    }
+
+    // ── 제출 ────────────────────────────────────────────
+    function doSubmit() {
+        if (hasSubmitted) return;
+        const typedText = document.getElementById('typing-input').value.trim();
+        if (!typedText) return;
+
+        hasSubmitted = true;
+        lockInput();
+
+        stomp.send('/app/submit', {}, JSON.stringify({ nickname: me, text: typedText }));
+        post('mine', '나', '제출 완료! 다른 플레이어를 기다리는 중...');
+    }
+
+    document.getElementById('submit-btn').addEventListener('click', doSubmit);
+    document.getElementById('typing-input').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') doSubmit();
+    });
+
+    // ── 초기 메시지 & 연결 ──────────────────────────────
+    post('system', '딜러', '══════════════════════════════════════');
+    post('system', '딜러', '  TYPING GAME BBS 에 오신 것을 환영합니다!');
+    post('system', '딜러', '  플레이어: ' + me);
+    post('system', '딜러', '══════════════════════════════════════');
+    connect();
+</script>
+</body>
+</html>

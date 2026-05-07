@@ -1,0 +1,3 @@
+spring.application.name=typing-game
+server.servlet.context-path=/typing-game
+# server.port=8080

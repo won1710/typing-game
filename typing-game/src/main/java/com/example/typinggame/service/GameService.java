@@ -115,27 +115,23 @@ public class GameService {
         // 미제출자는 0점 처리
         for (String user : activeUsers) {
             submissions.putIfAbsent(user,
-                    new RoundResult(0, (long) ROUND_SECONDS * 1000, false));
+                    new RoundResult(0, (long) ROUND_SECONDS * 1000, false, 0, 0, 0));
         }
 
-        // 정확도 DESC, 시간 ASC 정렬
+        // 점수 DESC 정렬
         List<Map.Entry<String, RoundResult>> ranked = new ArrayList<>(submissions.entrySet());
-        ranked.sort((a, b) -> {
-            int cmp = Integer.compare(b.getValue().correctChars, a.getValue().correctChars);
-            return cmp != 0 ? cmp
-                    : Long.compare(a.getValue().durationMillis, b.getValue().durationMillis);
-        });
+        ranked.sort((a, b) -> Double.compare(b.getValue().score, a.getValue().score));
 
         broadcast("SYSTEM", "══ 라운드 종료 ══", 0);
 
-        String[] medals = {"🥇", "🥈", "🥉"};
+        String[] medals = {"1위", "2위", "3위"};
         for (int i = 0; i < ranked.size(); i++) {
             Map.Entry<String, RoundResult> e = ranked.get(i);
             RoundResult r = e.getValue();
             String medal = i < medals.length ? medals[i] : (i + 1) + "위";
             String line = r.submitted
-                    ? medal + " " + e.getKey() + "  |  " + r.correctChars + "자  |  "
-                      + String.format("%.2f", r.durationMillis / 1000.0) + "초"
+                    ? String.format("%s %s  |  점수 %.0f  |  정확도 %.1f%%  |  %.0f 타/분  |  %.1f초",
+                        medal, e.getKey(), r.score, r.accuracy, r.cpm, r.durationMillis / 1000.0)
                     : medal + " " + e.getKey() + "  |  미제출";
             broadcast("RANK", line, 0);
         }
@@ -153,23 +149,38 @@ public class GameService {
 
         long durationMillis = System.currentTimeMillis() - roundStartMillis;
         int correct = countCorrect(typedText, currentSentence);
-        submissions.put(nickname, new RoundResult(correct, durationMillis, true));
+        double accuracy = calcAccuracy(correct, currentSentence.length());
+        double cpm = calcCpm(correct, durationMillis);
+        double score = cpm * (accuracy / 100.0);
+
+        submissions.put(nickname, new RoundResult(correct, durationMillis, true, accuracy, cpm, score));
 
         broadcast("SYSTEM",
-                "[" + nickname + "] 제출 완료  |  " + correct + "자 정확",
+                String.format("[%s] 제출  |  정확도 %.1f%%  |  %.0f 타/분", nickname, accuracy, cpm),
                 getUserCount());
     }
 
     // ── 내부 유틸 ───────────────────────────────────────
 
+    // 위치별 일치 글자 수 (첫 오류 이후도 계속 비교)
     private int countCorrect(String typed, String target) {
         int count = 0;
         int limit = Math.min(typed.length(), target.length());
         for (int i = 0; i < limit; i++) {
             if (typed.charAt(i) == target.charAt(i)) count++;
-            else break;
         }
         return count;
+    }
+
+    private double calcAccuracy(int correctChars, int targetLength) {
+        if (targetLength == 0) return 0;
+        return Math.min((double) correctChars / targetLength * 100, 100.0);
+    }
+
+    // 글자/분 (characters per minute)
+    private double calcCpm(int correctChars, long durationMillis) {
+        if (durationMillis == 0) return 0;
+        return (double) correctChars / durationMillis * 60_000;
     }
 
     private void broadcast(String type, String text, int sLeft) {
@@ -188,11 +199,18 @@ public class GameService {
         final int correctChars;
         final long durationMillis;
         final boolean submitted;
+        final double accuracy;  // %
+        final double cpm;       // 타/분
+        final double score;     // cpm × (accuracy/100)
 
-        RoundResult(int correctChars, long durationMillis, boolean submitted) {
+        RoundResult(int correctChars, long durationMillis, boolean submitted,
+                    double accuracy, double cpm, double score) {
             this.correctChars = correctChars;
             this.durationMillis = durationMillis;
             this.submitted = submitted;
+            this.accuracy = accuracy;
+            this.cpm = cpm;
+            this.score = score;
         }
     }
 }

@@ -183,7 +183,6 @@
     </div>
 </div>
 
-<script th:src="@{/webjars/sockjs-client/sockjs.min.js}"></script>
 <script th:src="@{/webjars/stomp-websocket/stomp.min.js}"></script>
 <script>
     const me = document.getElementById('me').value;
@@ -300,7 +299,8 @@
 
     // ── WebSocket 연결 ──────────────────────────────────
     function connect() {
-        const sock = new SockJS('/ws');
+        const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+        const sock = new WebSocket(protocol + '://' + location.host + '/ws');
         stomp = Stomp.over(sock);
         stomp.debug = null;
         stomp.connect({}, function () {

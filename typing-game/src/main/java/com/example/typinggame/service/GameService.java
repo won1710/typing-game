@@ -239,8 +239,9 @@ public class GameService {
 
         long durationMillis = System.currentTimeMillis() - roundStartMillis;
         int correct = countCorrect(typedText, currentSentence);
+        int correctStrokes = countCorrectKeystrokes(typedText, currentSentence);
         double accuracy = calcAccuracy(correct, currentSentence.length());
-        double cpm = calcCpm(correct, durationMillis);
+        double cpm = calcCpm(correctStrokes, durationMillis);
         double score = cpm * (accuracy / 100.0);
 
         submissions.put(nickname, new RoundResult(correct, durationMillis, true, accuracy, cpm, score));
@@ -262,15 +263,52 @@ public class GameService {
         return count;
     }
 
+    // 맞은 글자의 실제 키 입력 수 (한글 자모 분해 기준)
+    private int countCorrectKeystrokes(String typed, String target) {
+        int strokes = 0;
+        int limit = Math.min(typed.length(), target.length());
+        for (int i = 0; i < limit; i++) {
+            if (typed.charAt(i) == target.charAt(i)) {
+                strokes += keystrokesForChar(target.charAt(i));
+            }
+        }
+        return strokes;
+    }
+
+    // 두벌식 기준: 한글 음절 → 초성(1) + 중성(1~2) + 종성(0~2)
+    private static final int[] JUNGSEONG_STROKES = {
+        1, 1, 1, 1, 1, 1, 1, 1, 1, // ㅏ~ㅗ
+        2, 2, 2,                     // ㅘ, ㅙ, ㅚ
+        1, 1,                        // ㅛ, ㅜ
+        2, 2, 2,                     // ㅝ, ㅞ, ㅟ
+        1, 1,                        // ㅠ, ㅡ
+        2,                           // ㅢ
+        1                            // ㅣ
+    };
+    private static final int[] JONGSEONG_STROKES = {
+        0, 1, 1, 2, 1, 2, 2, 1, 1,  // (없음), ㄱ, ㄲ, ㄳ, ㄴ, ㄵ, ㄶ, ㄷ, ㄹ
+        2, 2, 2, 2, 2, 2, 2,         // ㄺ~ㅀ
+        1, 1, 2,                     // ㅁ, ㅂ, ㅄ
+        1, 1, 1, 1, 1, 1, 1, 1, 1   // ㅅ~ㅎ
+    };
+
+    private int keystrokesForChar(char c) {
+        if (c < 0xAC00 || c > 0xD7A3) return 1;
+        int code = c - 0xAC00;
+        int jungseong = (code % (21 * 28)) / 28;
+        int jongseong = code % 28;
+        return 1 + JUNGSEONG_STROKES[jungseong] + JONGSEONG_STROKES[jongseong];
+    }
+
     private double calcAccuracy(int correctChars, int targetLength) {
         if (targetLength == 0) return 0;
         return Math.min((double) correctChars / targetLength * 100, 100.0);
     }
 
-    // 글자/분 (characters per minute)
-    private double calcCpm(int correctChars, long durationMillis) {
+    // 타수/분 (두벌식 자모 기준 keystrokes per minute)
+    private double calcCpm(int correctStrokes, long durationMillis) {
         if (durationMillis == 0) return 0;
-        return (double) correctChars / durationMillis * 60_000;
+        return (double) correctStrokes / durationMillis * 60_000;
     }
 
     private void broadcast(String type, String text, int sLeft) {

@@ -1,4 +1,4 @@
-﻿package com.example.typinggame.service;
+package com.example.typinggame.service;
 
 import com.example.typinggame.model.GameMessage;
 import jakarta.annotation.PreDestroy;

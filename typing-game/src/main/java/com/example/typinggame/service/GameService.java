@@ -247,7 +247,7 @@ public class GameService {
         submissions.put(nickname, new RoundResult(correct, durationMillis, true, accuracy, cpm, score));
 
         broadcast("SYSTEM",
-                String.format("[%s] 제출  |  정확도 %.1f%%  |  %.0f 타/분", nickname, accuracy, cpm),
+                String.format("[%s] %s  |  정확도 %.1f%%  |  %.0f 타/분", nickname, typedText, accuracy, cpm),
                 getUserCount());
     }
 
